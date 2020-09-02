@@ -423,32 +423,6 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 			QueryPerformanceFrequency(&frequency);
 			QueryPerformanceCounter(&start);
 		}
-		if (!g_Data.isInjectorConnectionActive()) {
-			__int64 retval = oText(a1, renderCtx);
-
-			LARGE_INTEGER end, elapsed;
-			QueryPerformanceCounter(&end);
-			elapsed.QuadPart = end.QuadPart - start.QuadPart;
-			float elapsedFlot = (float)elapsed.QuadPart / frequency.QuadPart;
-			if (elapsedFlot > 1.5f) {
-				vec2_t windowSize = dat->windowSize;
-
-				DrawUtils::fillRectangle(vec4_t(0, 0, windowSize.x, windowSize.y), MC_Color(0.2f, 0.2f, 0.2f), 0.8f);
-
-				std::string text = "Download the new injector at http://horionbeta.club/";
-				if (!wasConnectedBefore)
-					DrawUtils::drawText(vec2_t(windowSize.x / 2 - DrawUtils::getTextWidth(&text, 1.5f) / 2, windowSize.y * 0.4f), &text, MC_Color(), 1.5f);
-				text = "Remember to keep the injector open while playing";
-				DrawUtils::drawText(vec2_t(windowSize.x / 2 - DrawUtils::getTextWidth(&text, wasConnectedBefore ? 1.5f : 0.7f) / 2, windowSize.y * (wasConnectedBefore ? 0.5f : 0.7f)), &text, MC_Color(), wasConnectedBefore ? 1.5f : 0.7f);
-				text = "Uninject by holding down CTRL + L";
-				DrawUtils::drawText(vec2_t(windowSize.x / 2 - DrawUtils::getTextWidth(&text, 0.7f) / 2, windowSize.y * 0.8f), &text, MC_Color(), 0.7f);
-
-				DrawUtils::flush();
-			}
-
-			return retval;
-		} else
-			wasConnectedBefore = true;
 	}
 
 	if (GameData::shouldHide() || !g_Hooks.shouldRender || !moduleMgr->isInitialized())
@@ -492,129 +466,17 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 		std::string screenName(g_Hooks.currentScreenName);
 		if (strcmp(screenName.c_str(), "start_screen") == 0) {
 			// Draw BIG epic horion watermark
-			/*{
+			{
 				std::string text = "H O R I O N";
 				vec2_t textPos = vec2_t(wid.x / 2.f - DrawUtils::getTextWidth(&text, 8.f) / 2.f, wid.y / 9.5f);
 				vec4_t rectPos = vec4_t(textPos.x - 55.f, textPos.y - 15.f, textPos.x + DrawUtils::getTextWidth(&text, 8.f) + 55.f, textPos.y + 75.f);
 				DrawUtils::fillRectangle(rectPos, MC_Color(13, 29, 48, 1), 1.f);
 				DrawUtils::drawRectangle(rectPos, rcolors, 1.f, 2.f);
 				DrawUtils::drawText(textPos, &text, MC_Color(255, 255, 255, 1), 8.f);
-			}*/
-
-			// Draw Custom Geo Button
-			if (g_Data.allowWIPFeatures()) {
-				if (HImGui.Button("Load Script Folder", vec2_t(wid.x * (0.765f - 0.5f), wid.y * 0.92f), true)) {
-					HorionDataPacket packet;
-					packet.cmd = CMD_FOLDERCHOOSER;
-					auto tmp = std::shared_ptr<unsigned char[]>(new unsigned char[300]);
-					packet.data.swap(tmp);
-					memset(packet.data.get(), 0, 300);
-					strcpy_s((char*)packet.data.get(), 200, "{\"title\": \"Select a Script Folder\", \"filter\":\".js\"}");
-					packet.dataArraySize = (int)strlen((char*)packet.data.get());
-					packet.params[0] = g_Data.addInjectorResponseCallback([](std::shared_ptr<HorionDataPacket> pk) {
-						if (pk->params[0] != 1) {  // Dialog Canceled, reset geo
-							auto box = g_Data.addInfoBox("Scripting", "Invalid Folder");
-							box->closeTimer = 1;
-							return;
-						}
-
-						wchar_t* jsonData = reinterpret_cast<wchar_t*>(pk->data.get());
-						std::wstring jsonDataStr(jsonData);
-
-						json parsed = json::parse(jsonDataStr);
-						if (parsed["path"].is_string()) {
-							auto box = g_Data.addInfoBox("Importing Script", "Please wait...");
-							std::thread gamer([parsed, box]() {
-								auto result = scriptMgr.importScriptFolder(parsed["path"].get<std::string>());
-								if (result)
-									box->fadeTarget = 0;
-								else {
-									box->message = "Script import error, \ncheck the console";
-									box->closeTimer = 2;
-								}
-							});
-							gamer.detach();
-						}
-					});
-
-					g_Data.sendPacketToInjector(packet);
-				}
-				if (HImGui.Button("Custom Geometry", vec2_t(wid.x * 0.765f, wid.y * 0.92f), true)) {
-					HorionDataPacket packet;
-					packet.cmd = CMD_FILECHOOSER;
-					auto tmp = std::shared_ptr<unsigned char[]>(new unsigned char[300]);
-					packet.data.swap(tmp);
-					memset(packet.data.get(), 0, 300);
-					strcpy_s((char*)packet.data.get(), 200, "{\"title\": \"Select a 3d object\", \"filter\":\"Object Files (*.obj)|*.obj\"}");
-					packet.dataArraySize = (int)strlen((char*)packet.data.get());
-					packet.params[0] = g_Data.addInjectorResponseCallback([](std::shared_ptr<HorionDataPacket> pk) {
-						if (pk->params[0] != 1 && std::get<0>(g_Data.getCustomGeoOverride())) {  // Dialog Canceled, reset geo
-							auto box = g_Data.addInfoBox("Geometry reset", "Geometry override removed");
-							box->closeTimer = 1;
-							return;
-						}
-
-						wchar_t* jsonData = reinterpret_cast<wchar_t*>(pk->data.get());
-						std::wstring jsonDataStr(jsonData);
-
-						json parsed = json::parse(jsonDataStr);
-						if (parsed["path"].is_string()) {
-							auto box = g_Data.addInfoBox("Importing Skin", "Please wait...");
-							std::thread gamer([parsed, box]() {
-								SkinUtil::importGeo(Utils::stringToWstring(parsed["path"].get<std::string>()));
-								box->fadeTarget = 0;
-							});
-							gamer.detach();
-						}
-					});
-
-					g_Data.sendPacketToInjector(packet);
-				}
-				if (HImGui.Button("Custom Texture", vec2_t(wid.x * 0.5f, wid.y * 0.92f), true)) {
-					HorionDataPacket packet;
-					packet.cmd = CMD_FILECHOOSER;
-					auto tmp = std::shared_ptr<unsigned char[]>(new unsigned char[500]);
-					packet.data.swap(tmp);
-					memset(packet.data.get(), 0, 500);
-					strcpy_s((char*)packet.data.get(), 400, "{\"title\": \"Select a raw image file\", \"filter\":\"Raw image files (*.data, *.raw)|*.data;*.raw\"}");
-					packet.dataArraySize = (int)strlen((char*)packet.data.get());
-					packet.params[0] = g_Data.addInjectorResponseCallback([](std::shared_ptr<HorionDataPacket> pk) {
-						if (pk->params[0] != 1 && std::get<0>(g_Data.getCustomTextureOverride())) {  // Dialog Canceled, reset texture
-							auto box = g_Data.addInfoBox("Texture reset", "Texture override removed");
-							box->closeTimer = 1;
-							return;
-						}
-
-						wchar_t* jsonData = reinterpret_cast<wchar_t*>(pk->data.get());
-						std::wstring jsonDataStr(jsonData);
-
-						json parsed = json::parse(jsonDataStr);
-						if (parsed["path"].is_string()) {
-							auto box = g_Data.addInfoBox("Importing texture...", "");
-							std::thread gamer([parsed, box]() {
-								auto contents = Utils::readFileContents(Utils::stringToWstring(parsed["path"].get<std::string>()));
-								if (contents.size() > 0) {
-									auto texturePtr = std::shared_ptr<unsigned char[]>(new unsigned char[contents.size() + 1]);
-									memcpy(texturePtr.get(), contents.c_str(), contents.size());
-									texturePtr.get()[contents.size()] = 0;
-									g_Data.setCustomTextureOverride(true, std::make_shared<std::tuple<std::shared_ptr<unsigned char[]>, size_t>>(texturePtr, contents.size()));
-									box->title = "Success";
-									box->closeTimer = 0.3f;
-								} else {
-									box->title = "Error!";
-									box->message = "Could not read texture file (empty?)";
-									box->closeTimer = 2.f;
-								}
-							});
-							gamer.detach();
-						}
-					});
-
-					g_Data.sendPacketToInjector(packet);
-				}
 			}
 
-		} else {
+		} 
+		{
 			shouldRenderTabGui = hudModule->tabgui && hudModule->isEnabled();
 			shouldRenderArrayList = hudModule->arraylist && hudModule->isEnabled();
 			shouldRenderWatermark = hudModule->watermark && hudModule->isEnabled();
@@ -1464,7 +1326,7 @@ __int64 Hooks::ConnectionRequest_create(__int64 _this, __int64 privateKeyManager
 
 	auto geoOverride = g_Data.getCustomGeoOverride();
 
-	if (g_Data.allowWIPFeatures()) {
+	if (false) {
 		logF("Connection Request: InputMode: %i UiProfile: %i GuiScale: %i", inputMode, uiProfile, guiScale);
 
 		//Logger::WriteBigLogFileF(skinGeometryData->getTextLength() + 20, "Geometry: %s", skinGeometryData->getText());
@@ -1610,91 +1472,6 @@ GamerTextHolder* Hooks::toStyledString(__int64 strIn, GamerTextHolder* strOut) {
 	return func(strIn, strOut);
 }
 
-void prepCoolBean() {
-	if (g_Data.getClientInstance() && g_Data.getClientInstance()->minecraftGame->getServerEntries() && *reinterpret_cast<__int64*>(g_Data.getClientInstance()->minecraftGame->getServerEntries() + 0x50)) {
-		auto serverEntries = g_Data.getClientInstance()->minecraftGame->getServerEntries() + 0x48;
-
-		struct ThirdPartyServer {
-			TextHolder serverName;
-			TextHolder uuid;
-			TextHolder masterPlayerAccount;
-			TextHolder serverName2;
-			TextHolder lobbyDescription;
-			TextHolder domain;            // contains the last two parts of the domain .hivebedrock.network .mineplex.com
-			TextHolder pathToServerIcon;  // C:\Users\user\AppData\Local\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalCache\minecraftpe\ContentCache\ThirdPartyServer\\<file hash>.jpg
-			TextHolder serverAddress;
-			int coolBoye;
-
-			ThirdPartyServer() {
-				memset(this, 0, sizeof(ThirdPartyServer));
-			}
-		};
-
-		struct BeansEntry {
-			BeansEntry* nextEntry;
-			BeansEntry* prevEntry;
-			TextHolder masterPlayer;
-			float unk;
-			char filler[0x3c];
-			TextHolder masterPlayer2;
-			TextHolder serverName;
-			char filler2[8];
-			std::shared_ptr<ThirdPartyServer>* start;  // array
-			std::shared_ptr<ThirdPartyServer>* end;    // end of array
-		};
-
-		auto listEnd = *reinterpret_cast<BeansEntry**>(serverEntries);
-
-		auto current = listEnd;
-		int count = 0;
-		while (listEnd != current->nextEntry) {
-			current = current->nextEntry;
-			count++;
-		}
-		if (count > 5)  // we already added a server
-			goto end;
-
-		// make new one
-		BeansEntry* epic = new BeansEntry();
-		epic->nextEntry = listEnd;
-		epic->prevEntry = current;
-		epic->masterPlayer.setText("");
-		epic->unk = current->unk;
-		memcpy(epic->filler, current->filler, sizeof(BeansEntry::filler));
-		epic->masterPlayer2.setText("");
-		epic->serverName.setText("Epic");
-		memcpy(epic->filler2, current->filler2, sizeof(BeansEntry::filler2));
-
-		auto cT = current->start[0].get();
-
-		std::shared_ptr<ThirdPartyServer>* start = new std::shared_ptr<ThirdPartyServer>[1];
-
-		{
-			ThirdPartyServer* t = new ThirdPartyServer();
-
-			t->coolBoye = cT->coolBoye;
-			t->uuid.setText("");
-			t->masterPlayerAccount = cT->masterPlayerAccount;
-			t->lobbyDescription = cT->lobbyDescription;
-			t->pathToServerIcon.setText("");
-			t->serverName.setText("Horion Server");
-			t->serverName2.setText("Horion Server");  // This is the one actually displayed
-			t->domain.setText(".horionbeta.club");
-			t->serverAddress.setText("mc.horionbeta.club");
-			start[0] = std::shared_ptr<ThirdPartyServer>(t);
-		}
-
-		epic->start = start;
-		epic->end = &start[1];
-
-		current->nextEntry = epic;
-
-		// increase count
-		*reinterpret_cast<__int64*>(g_Data.getClientInstance()->minecraftGame->getServerEntries() + 0x50) += 1;
-	end:;
-	}
-}
-
 __int64 Hooks::prepFeaturedServers(__int64 a1) {
 	static auto func = g_Hooks.prepFeaturedServersHook->GetFastcall<__int64, __int64>();
 	auto ret = func(a1);
@@ -1702,17 +1479,11 @@ __int64 Hooks::prepFeaturedServers(__int64 a1) {
 	if (g_Data.getClientInstance() == nullptr)
 		return ret;
 
-	if (g_Data.allowWIPFeatures())
-		prepCoolBean();
-
 	return ret;
 }
 
 __int64 Hooks::prepFeaturedServersFirstTime(__int64 a1, __int64 a2) {
 	static auto func = g_Hooks.prepFeaturedServersFirstTimeHook->GetFastcall<__int64, __int64, __int64>();
-
-	if (g_Data.allowWIPFeatures())
-		prepCoolBean();
 
 	auto ret = func(a1, a2);
 

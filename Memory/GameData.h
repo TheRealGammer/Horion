@@ -173,48 +173,6 @@ public:
 	inline auto getCustomTextureOverride() {
 		return std::make_tuple(this->customTextureActive, this->customTexture);
 	}
-	inline AccountInformation getAccountInformation() { return this->accountInformation; };
-	inline void setAccountInformation(AccountInformation newAcc) {
-		if (newAcc.verify())
-			this->accountInformation = newAcc;
-		else {
-			#ifdef _BETA
-			this->terminate();
-			*reinterpret_cast<int*>(0) = 1;
-			#endif
-		}
-	}
-	void sendPacketToInjector(HorionDataPacket horionDataPack);
-	inline int addInjectorResponseCallback(std::function<void(std::shared_ptr<HorionDataPacket>)> callback) {
-		lastRequestId++;
-		this->injectorToHorionResponseCallbacks[lastRequestId] = callback;
-		return lastRequestId;
-	}
-	void callInjectorResponseCallback(int id, std::shared_ptr<HorionDataPacket> packet);
-	inline bool allowWIPFeatures() {
-#ifdef _DEBUG
-		return true;
-#else
-		return isAllowingWIPFeatures;
-#endif
-	}
-	inline void setAllowWIPFeatures(bool enable = false) { isAllowingWIPFeatures = enable; };
-	inline bool isInjectorConnectionActive() { return injectorConnectionActive; };
-	inline void setInjectorConnectionActive(bool isActive) {
-		if (injectorConnectionActive && !isActive) {
-			std::queue<HorionDataPacket> empty;
-			horionToInjectorQueue.swap(empty);
-		}
-		injectorConnectionActive = isActive;
-	};
-	inline bool isPacketToInjectorQueueEmpty() { return horionToInjectorQueue.empty(); };
-	inline HorionDataPacket getPacketToInjector() {
-		if (isPacketToInjectorQueueEmpty())
-			throw std::exception("Packet send queue is empty");
-		HorionDataPacket pk = horionToInjectorQueue.front();
-		horionToInjectorQueue.pop();
-		return pk;
-	};
 	inline void* getDllModule() { return hDllInst; };
 	inline C_ClientInstance* getClientInstance() { return clientInstance; };
 	inline C_GuiData* getGuiData() { return clientInstance->getGuiData(); };
