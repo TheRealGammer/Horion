@@ -1,10 +1,12 @@
 #pragma once
 #include "Module.h"
 
-class StackableItem : public IModule {
-public:
+struct StackableItem : public IModule 
+{
+	int maxStackSize;
+
 	StackableItem();
-	~StackableItem();
+	~StackableItem(){};
 
 	virtual const char* getModuleName() override;
 	virtual void onTick(C_GameMode* gm) override;

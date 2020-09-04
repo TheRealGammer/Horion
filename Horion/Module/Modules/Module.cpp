@@ -234,13 +234,9 @@ bool IModule::isFlashMode() {
 }
 
 void IModule::setEnabled(bool enabled) {
-	if (this->enabled != enabled) {
+	if (this->enabled != enabled) 
+	{
 		this->enabled = enabled;
-#ifndef _DEBUG
-		if (!isFlashMode())  // Only print jetpack stuff in debug mode
-#endif
-			logF("%s %s", enabled ? "Enabled" : "Disabled", this->getModuleName());
-
 		if (enabled)
 			this->onEnable();
 		else
@@ -250,6 +246,13 @@ void IModule::setEnabled(bool enabled) {
 
 void IModule::toggle() {
 	setEnabled(!this->enabled);
+}
+
+void IModule::reEnable() {
+	if (this->enabled)
+		this->onEnable();
+	else
+		this->onDisable();
 }
 
 bool IModule::isEnabled() {

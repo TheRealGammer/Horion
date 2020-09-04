@@ -94,7 +94,8 @@ void ModuleManager::initModules() {
 		this->moduleList.push_back(std::shared_ptr<IModule>(new AutoSneak()));
 		this->moduleList.push_back(std::shared_ptr<IModule>(new NoHurtcam()));
 		this->moduleList.push_back(std::shared_ptr<IModule>(new AntiImmobile()));
-		this->moduleList.push_back(std::shared_ptr<IModule>(new	NoPaintingCrash()));
+		this->moduleList.push_back(std::shared_ptr<IModule>(new NoPaintingCrash()));
+
 
 		this->moduleList.push_back(std::shared_ptr<IModule>(new FollowPathModule()));
 
@@ -102,6 +103,10 @@ void ModuleManager::initModules() {
 		this->moduleList.push_back(std::shared_ptr<IModule>(new PacketLogger()));
 		this->moduleList.push_back(std::shared_ptr<IModule>(new TestModule()));
 #endif
+
+		smoothFontMod = new SmoothFont();
+		this->moduleList.push_back(std::shared_ptr<IModule>(smoothFontMod));
+		this->moduleList.push_back(std::shared_ptr<IModule>(new NoHitbox()));
 
 		// Sort modules alphabetically
 		std::sort(moduleList.begin(), moduleList.end(), [](auto lhs, auto rhs) {

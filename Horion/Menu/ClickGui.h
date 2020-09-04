@@ -30,7 +30,8 @@ struct ClickWindow {
 };
 
 class ClickGui {
-private:
+public:
+	static inline float backgroundOpacity;
 
 	inline static std::shared_ptr<ClickWindow> getWindow(const char* id);
 	inline static std::shared_ptr<ClickModule> getClickModule(std::shared_ptr<ClickWindow> window, const char* id);
@@ -42,7 +43,7 @@ private:
 	inline static void getModuleListByCategory(Category category, std::vector<std::shared_ptr<IModule>>* modList);
 
 	inline static const char* catToName(Category cat){
-		const char* categoryName;
+		const char* categoryName = nullptr;
 
 		// Get Category Name
 		{

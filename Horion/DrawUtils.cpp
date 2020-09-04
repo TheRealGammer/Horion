@@ -3,6 +3,7 @@
 #include "Module/ModuleManager.h"
 #include <Windows.h>
 #include "../Utils/Logger.h"
+#include "Module/Modules/SmoothFont.h"
 
 struct MaterialPtr {
 	char padding[0x138];
@@ -87,34 +88,62 @@ void DrawUtils::setColor(float r, float g, float b, float a) {
 	*reinterpret_cast<uint8_t*>(colorHolder + 4) = 1;
 }
 
-C_Font* DrawUtils::getFont(Fonts font) {
+C_Font* DrawUtils::getFont() {
 
 	if (g_Data.getVersion() == GAMEVERSION::g_1_16_20)
 		return g_Data.getClientInstance()->N0000080D->getOldFont();
-	switch (font) {
-	case Fonts::SMOOTH:
-		return g_Data.getClientInstance()->N0000080D->getTheGoodFontThankYou();
-		break;
-	case Fonts::UNICOD:
-		return g_Data.getClientInstance()->N0000080D->getTheBetterFontYes();
-		break;
-	case Fonts::RUNE:
-		return g_Data.getClientInstance()->_getRuneFont();
-		break;
-	default:
-		return g_Data.getClientInstance()->_getFont();
-		break;
-	}
+	return g_Data.getClientInstance()->N0000080D->getTheGoodFontThankYou();
 }
 
-float DrawUtils::getTextWidth(std::string* textStr, float textSize, Fonts font) {
-	TextHolder text(*textStr);
+float DrawUtils::getTextWidth(std::string* textStr, float textSize)
+{
+	auto smooth = moduleMgr->getModule<SmoothFont>();
+	if (smooth != nullptr)
+		if (smooth->isEnabled()) {
+			TextHolder* text = new TextHolder(*textStr);
 
-	C_Font* fontPtr = getFont(font);
+			C_Font* fontPtr = getFont();
 
-	float ret = renderCtx->getLineLength(fontPtr, &text, textSize, false);
+			float ret = fontPtr->getLineLength(text, textSize, false);
 
-	return ret;
+			delete text;
+			return ret;
+		}
+	unsigned int total = 0;
+	for (char const& ch : *textStr) {
+		switch (ch) {
+		case 'i':
+		case '!':
+		case '\'':
+			total += 2;
+			break;
+		case 'l':
+		case '.':
+		case ',':
+			total += 3;
+			break;
+		case '[':
+		case ']':
+		case '{':
+		case '}':
+		case '(':
+		case ')':
+		case 'I':
+		case '\"':
+		case 't':
+		case ' ':
+			total += 4;
+			break;
+		case 'k':
+			total += 5;
+			break;
+		default:
+			total += 6;
+			break;
+		}
+	}
+
+	return total * textSize;
 }
 
 void DrawUtils::flush() {
@@ -145,9 +174,9 @@ void DrawUtils::drawLine(vec2_t start, vec2_t end, float lineWidth) {
 	tess_end(screenContext2d, tesselator, uiMaterial);
 }
 
-void DrawUtils::drawText(vec2_t pos, std::string* textStr, MC_Color color, float textSize, float alpha, Fonts font) {
+void DrawUtils::drawText(vec2_t pos, std::string* textStr, MC_Color color, float textSize, float alpha) {
 	TextHolder text(*textStr);
-	C_Font* fontPtr = getFont(font);
+	C_Font* fontPtr = getFont();
 	static uintptr_t caretMeasureData = 0xFFFFFFFF;
 
 	pos.y -= 1;
@@ -162,7 +191,13 @@ void DrawUtils::drawText(vec2_t pos, std::string* textStr, MC_Color color, float
 	memset(&textMeasure, 0, sizeof(TextMeasureData));
 	textMeasure.textSize = textSize;
 
-	renderCtx->drawText(fontPtr, posF, &text, color.arr, alpha, 0, &textMeasure, &caretMeasureData);
+	if (moduleMgr->smoothFontMod->isEnabled()) 
+		renderCtx->drawText(fontPtr, posF, &text, color.arr, alpha, 0, &textMeasure, &caretMeasureData);
+	else {
+		posF[2] = pos.y + 1;
+		renderCtx->drawDebugText(posF, &text, color.arr, alpha, 0, &textMeasure.textSize, &caretMeasureData);
+	}
+
 }
 
 void DrawUtils::drawBox(vec3_t lower, vec3_t upper, float lineWidth, bool outline) {
@@ -304,7 +339,7 @@ void DrawUtils::drawNameTags(C_Entity* ent, float textSize, bool drawHealth, boo
 	text = Utils::sanitize(text);
 
 	float textWidth = getTextWidth(&text, textSize);
-	float textHeight = DrawUtils::getFont(Fonts::SMOOTH)->getLineHeight() * textSize;
+	float textHeight = DrawUtils::getFont()->getLineHeight() * textSize;
 
 	if (refdef->OWorldToScreen(origin, ent->eyePos0.add(0, 0.5f, 0), textPos, fov, screenSize)) {
 		textPos.y -= textHeight;
@@ -415,7 +450,7 @@ void DrawUtils::drawKeystroke(char key, vec2_t pos) {
 		pos.y + 20.f);
 	vec2_t textPos(
 		(rectPos.x + (rectPos.z - rectPos.x) / 2) - (DrawUtils::getTextWidth(&keyString) / 2.f),
-		rectPos.y + 10.f - DrawUtils::getFont(Fonts::SMOOTH)->getLineHeight() / 2.f);
+		rectPos.y + 10.f - DrawUtils::getFont()->getLineHeight() / 2.f);
 	fillRectangle(rectPos, GameData::isKeyDown(key) ? MC_Color(28, 50, 77) : MC_Color(13, 29, 48), 1.f);
 	drawText(textPos, &keyString, MC_Color(255, 255, 255), 1.f, 1.f);
 }

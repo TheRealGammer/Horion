@@ -1,12 +1,12 @@
 #include "StackableItem.h"
 
-StackableItem::StackableItem() : IModule(0x0, Category::PLAYER, "Stack items you normally wouldn't be able to stack (e. g. swords)") {
+StackableItem::StackableItem() : IModule(0x0, Category::PLAYER, "Stack items you normally wouldn't be able to stack (e. g. swords)") 
+{
+	this->registerIntSetting("MaxStackSize", &maxStackSize, 64, 1, 255);
 }
 
-StackableItem::~StackableItem() {
-}
-
-const char* StackableItem::getModuleName() {
+const char* StackableItem::getModuleName()
+{
 	return ("StackableItem");
 }
 
@@ -18,7 +18,7 @@ void StackableItem::onTick(C_GameMode* gm) {
 		if (stack->item != NULL) {
 			C_Item* item = *stack->item;
 			item->setStackedByData(true);
-			item->setMaxStackSize(64);
+			item->setMaxStackSize(maxStackSize);
 		}
 	}
 }

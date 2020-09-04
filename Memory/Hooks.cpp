@@ -465,15 +465,6 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 		// Main Menu
 		std::string screenName(g_Hooks.currentScreenName);
 		if (strcmp(screenName.c_str(), "start_screen") == 0) {
-			// Draw BIG epic horion watermark
-			{
-				std::string text = "H O R I O N";
-				vec2_t textPos = vec2_t(wid.x / 2.f - DrawUtils::getTextWidth(&text, 8.f) / 2.f, wid.y / 9.5f);
-				vec4_t rectPos = vec4_t(textPos.x - 55.f, textPos.y - 15.f, textPos.x + DrawUtils::getTextWidth(&text, 8.f) + 55.f, textPos.y + 75.f);
-				DrawUtils::fillRectangle(rectPos, MC_Color(13, 29, 48, 1), 1.f);
-				DrawUtils::drawRectangle(rectPos, rcolors, 1.f, 2.f);
-				DrawUtils::drawText(textPos, &text, MC_Color(255, 255, 255, 1), 8.f);
-			}
 
 		} 
 		{
@@ -507,7 +498,7 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 				if (shouldRenderWatermark) {
 					constexpr float nameTextSize = 1.5f;
 					constexpr float versionTextSize = 0.7f;
-					static const float textHeight = (nameTextSize + versionTextSize * 0.7f /* We don't quite want the version string in its own line, just a bit below the name */) * DrawUtils::getFont(Fonts::SMOOTH)->getLineHeight();
+					static const float textHeight = (nameTextSize + versionTextSize * 0.7f /* We don't quite want the version string in its own line, just a bit below the name */) * DrawUtils::getFont()->getLineHeight();
 					constexpr float borderPadding = 1;
 					constexpr float margin = 5;
 
@@ -707,7 +698,7 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 			const float paddingVert = 10 * box->fadeVal;
 			const float titleTextSize = box->fadeVal * 2;
 			const float messageTextSize = box->fadeVal * 1;
-			const float titleTextHeight = DrawUtils::getFont(Fonts::SMOOTH)->getLineHeight() * titleTextSize;
+			const float titleTextHeight = DrawUtils::getFont()->getLineHeight() * titleTextSize;
 
 			int lines = 1;
 			std::string substring = box->message;
@@ -721,7 +712,7 @@ __int64 Hooks::RenderText(__int64 a1, C_MinecraftUIRenderContext* renderCtx) {
 			if (box->message.size() == 0)
 				lines = 0;
 
-			const float messageHeight = DrawUtils::getFont(Fonts::SMOOTH)->getLineHeight() * messageTextSize * lines;
+			const float messageHeight = DrawUtils::getFont()->getLineHeight() * messageTextSize * lines;
 
 			float titleWidth = DrawUtils::getTextWidth(&box->title, titleTextSize);
 			float msgWidth = DrawUtils::getTextWidth(&box->message, messageTextSize);
@@ -1320,104 +1311,20 @@ float Hooks::GameMode_getPickRange(C_GameMode* _this, __int64 a2, char a3) {
 
 	return oFunc(_this, a2, a3);
 }
-
+__int64 res;
 __int64 Hooks::ConnectionRequest_create(__int64 _this, __int64 privateKeyManager, void* a3, TextHolder* selfSignedId, TextHolder* serverAddress, __int64 clientRandomId, TextHolder* skinId, SkinData* skinData, __int64 capeData, CoolSkinData* coolSkinStuff, TextHolder* deviceId, int inputMode, int uiProfile, int guiScale, TextHolder* languageCode, bool sendEduModeParams, TextHolder* tenantId, __int64 unused, TextHolder* platformUserId, TextHolder* thirdPartyName, bool thirdPartyNameOnly, TextHolder* platformOnlineId, TextHolder* platformOfflineId, TextHolder* capeId) {
 	static auto oFunc = g_Hooks.ConnectionRequest_createHook->GetFastcall<__int64, __int64, __int64, void*, TextHolder*, TextHolder*, __int64, TextHolder*, SkinData*, __int64, CoolSkinData*, TextHolder*, int, int, int, TextHolder*, bool, TextHolder*, __int64, TextHolder*, TextHolder*, bool, TextHolder*, TextHolder*, TextHolder*>();
 
-	auto geoOverride = g_Data.getCustomGeoOverride();
+	__int64 res;
 
-	if (false) {
-		logF("Connection Request: InputMode: %i UiProfile: %i GuiScale: %i", inputMode, uiProfile, guiScale);
+	if (auto m = moduleMgr->getModule<NoHitbox>())
+		m->reEnable();
 
-		//Logger::WriteBigLogFileF(skinGeometryData->getTextLength() + 20, "Geometry: %s", skinGeometryData->getText());
-		auto hResourceGeometry = FindResourceA((HMODULE)g_Data.getDllModule(), MAKEINTRESOURCEA(IDR_TEXT1), "TEXT");
-		auto hMemoryGeometry = LoadResource((HMODULE)g_Data.getDllModule(), hResourceGeometry);
-
-		auto sizeGeometry = SizeofResource((HMODULE)g_Data.getDllModule(), hResourceGeometry);
-		auto ptrGeometry = LockResource(hMemoryGeometry);
-
-		auto hResourceSteve = FindResourceA((HMODULE)g_Data.getDllModule(), MAKEINTRESOURCEA(IDR_STEVE), (char*)RT_RCDATA);
-		auto hMemorySteve = LoadResource((HMODULE)g_Data.getDllModule(), hResourceSteve);
-
-		auto sizeSteve = SizeofResource((HMODULE)g_Data.getDllModule(), hResourceSteve);
-		auto ptrSteve = LockResource(hMemorySteve);
-
-		//std::unique_ptr<TextHolder> newGeometryData(new TextHolder(ptrGeometry, sizeGeometry));
-		TextHolder* newGeometryData = nullptr;
-
-		if (std::get<0>(geoOverride)) {  // Is overriding geometry
-			auto overrideGeo = std::get<1>(geoOverride);
-			newGeometryData = new TextHolder(*overrideGeo.get());
-		} else {  // Default Skin
-				  /*char* str;  // Obj text
-			{
-				auto hResourceObj = FindResourceA(g_Data.getDllModule(), MAKEINTRESOURCEA(IDR_OBJ), "TEXT");
-				auto hMemoryObj = LoadResource(g_Data.getDllModule(), hResourceObj);
-
-				auto sizeObj = SizeofResource(g_Data.getDllModule(), hResourceObj);
-				auto ptrObj = LockResource(hMemoryObj);
-
-				str = new char[sizeObj + 1];
-				memset(str, 0, sizeObj + 1);
-				memcpy(str, ptrObj, sizeObj);
-			}
-
-			newGeometryData = new TextHolder(SkinUtil::modGeometry(reinterpret_cast<char*>(ptrGeometry), SkinUtil::objToMesh(str)));*/
-		}
-
-		SkinData* newSkinData = new SkinData();
-		newSkinData->SkinWidth = 128;
-		newSkinData->SkinHeight = 128;
-		newSkinData->skinData = ptrSteve;
-		newSkinData->skinSize = sizeSteve;
-
-		auto texOverride = g_Data.getCustomTextureOverride();
-		auto texture = std::get<1>(texOverride);  // Put it here so it won't go out of scope until after it has been used
-		if (std::get<0>(texOverride)) {           // Enabled
-			newSkinData->skinData = std::get<0>(*texture.get()).get();
-			newSkinData->skinSize = std::get<1>(*texture.get());
-		}
-
-		//Logger::WriteBigLogFileF(newGeometryData->getTextLength() + 20, "Geometry: %s", newGeometryData->getText());
-		TextHolder* newSkinResourcePatch = new TextHolder(Utils::base64_decode("ewogICAiZ2VvbWV0cnkiIDogewogICAgICAiYW5pbWF0ZWRfZmFjZSIgOiAiZ2VvbWV0cnkuYW5pbWF0ZWRfZmFjZV9wZXJzb25hXzRjZGJiZmFjYTI0YTk2OGVfMF8wIiwKICAgICAgImRlZmF1bHQiIDogImdlb21ldHJ5LnBlcnNvbmFfNGNkYmJmYWNhMjRhOTY4ZV8wXzAiCiAgIH0KfQo="));
-
-		TextHolder* fakeName = g_Data.getFakeName();
-		TextHolder resourcePatchBackup;
-
-		if (newGeometryData != nullptr) {
-			memcpy(&resourcePatchBackup, &coolSkinStuff->skinResourcePatch, sizeof(TextHolder));
-			memcpy(&coolSkinStuff->skinResourcePatch, newSkinResourcePatch, sizeof(TextHolder));
-			styledReturnText = *newGeometryData;
-			overrideStyledReturn = true;
-		}
-
-		//  newGeometryData == nullptr ? skinResourcePatch : newSkinResourcePatch, newGeometryData == nullptr ? skinGeometryData : newGeometryData, skinAnimationData, isPremiumSkin, isPersonaSkin,
-		__int64 res = oFunc(_this, privateKeyManager, a3, selfSignedId, serverAddress, clientRandomId, skinId, (newGeometryData == nullptr && !std::get<0>(texOverride)) ? skinData : newSkinData, capeData, coolSkinStuff, deviceId, inputMode, uiProfile, guiScale, languageCode, sendEduModeParams, tenantId, unused, platformUserId, fakeName != nullptr ? fakeName : thirdPartyName, fakeName != nullptr ? true : thirdPartyNameOnly, platformOnlineId, platformOfflineId, capeId);
-
-		if (newGeometryData != nullptr) {
-			memcpy(&coolSkinStuff->skinResourcePatch, &resourcePatchBackup, sizeof(TextHolder));
-			resourcePatchBackup.resetWithoutDelete();
-		}
-		overrideStyledReturn = false;
-
-		styledReturnText = TextHolder();
-
-		if (hMemoryGeometry)
-			FreeResource(hMemoryGeometry);
-		if (hMemorySteve)
-			FreeResource(hMemorySteve);
-
-		if (newGeometryData)
-			delete newGeometryData;
-		delete newSkinData;
-		delete newSkinResourcePatch;
-		return res;
-	} else {
-		TextHolder* fakeName = g_Data.getFakeName();
-		__int64 res = oFunc(_this, privateKeyManager, a3, selfSignedId, serverAddress, clientRandomId, skinId, skinData, capeData, coolSkinStuff, deviceId, inputMode, uiProfile, guiScale, languageCode, sendEduModeParams, tenantId, unused, platformUserId, fakeName != nullptr ? fakeName : thirdPartyName, fakeName != nullptr ? true : thirdPartyNameOnly, platformOnlineId, platformOfflineId, capeId);
-		return res;
-	}
+	TextHolder* fakeName = g_Data.getFakeName();
+	res = oFunc(_this, privateKeyManager, a3, selfSignedId, serverAddress, clientRandomId, skinId, skinData, capeData, coolSkinStuff, deviceId, inputMode, uiProfile, guiScale, languageCode, sendEduModeParams, tenantId, unused, platformUserId, fakeName != nullptr ? fakeName : thirdPartyName, fakeName != nullptr ? true : thirdPartyNameOnly, platformOnlineId, platformOfflineId, capeId);
+	return res;
 }
+
 
 void Hooks::InventoryTransactionManager_addAction(C_InventoryTransactionManager* a1, C_InventoryAction* a2) {
 	static auto Func = g_Hooks.InventoryTransactionManager_addActionHook->GetFastcall<void, C_InventoryTransactionManager*, C_InventoryAction*>();

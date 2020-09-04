@@ -37,8 +37,8 @@ static constexpr float paddingRight = 13.5f;
 static constexpr float crossSize = textHeight / 2.f;
 static constexpr float crossWidth = 0.3f;
 static constexpr float backgroundAlpha = 1;
-static const MC_Color selectedModuleColor = MC_Color(28, 107, 201);
-static const MC_Color moduleColor = MC_Color(13, 29, 48);
+static const MC_Color selectedModuleColor = MC_Color(58, 58, 218);
+static const MC_Color moduleColor = MC_Color(33, 35, 37);
 
 float currentYOffset = 0;
 float currentXOffset = 0;
@@ -108,8 +108,8 @@ void ClickGui::renderTooltip(std::string* text) {
 		currentTooltipPos.y - 2.f,
 		currentTooltipPos.x + (textPadding * 2) + textWidth + 2.f,
 		currentTooltipPos.y + textHeight + 2.f);
-	DrawUtils::fillRectangle(rectPos, MC_Color(13, 29, 48), 1.0f);
-	DrawUtils::drawRectangle(rectPos, MC_Color(255, 255, 255), 1.f, 0.5f);
+	DrawUtils::fillRectangle(rectPos, moduleColor, 1.0f);
+	DrawUtils::drawRectangle(rectPos, selectedModuleColor, 1.f, 0.5f);
 	DrawUtils::drawText(textPos, text, MC_Color(255, 255, 255), textSize);
 }
 
@@ -119,9 +119,10 @@ void ClickGui::renderCategory(Category category) {
 	const std::shared_ptr<ClickWindow> ourWindow = getWindow(categoryName);
 
 	// Reset Windows to pre-set positions to avoid confusion
-	if (resetStartPos && ourWindow->pos.x <= 0) {
+	if (resetStartPos && ourWindow->pos.x <= 0) 
+	{
 		float yot = g_Data.getGuiData()->windowSize.x;
-		ourWindow->pos.y = 4;
+		ourWindow->pos.y = 40;
 		switch (category) {
 		case Category::COMBAT:
 			ourWindow->pos.x = 10.f;
@@ -161,7 +162,7 @@ void ClickGui::renderCategory(Category category) {
 	{
 		for (auto& it : moduleList) {
 			std::string label = it->getModuleName();
-			windowSize->x = fmax(windowSize->x, DrawUtils::getTextWidth(&label, textSize, Fonts::SMOOTH));
+			windowSize->x = fmax(windowSize->x, DrawUtils::getTextWidth(&label, textSize));
 		}
 	}
 
@@ -406,6 +407,8 @@ void ClickGui::renderCategory(Category category) {
 											setting->value->_float = value;
 											setting->makeSureTheValueIsAGoodBoiAndTheUserHasntScrewedWithIt();
 										}
+										if (NoHitbox* v = dynamic_cast<NoHitbox*>(mod.get()))
+											v->reEnable();
 									}
 									currentYOffset += textHeight + (textPadding * 2);
 								}
@@ -496,6 +499,7 @@ void ClickGui::renderCategory(Category category) {
 
 											setting->value->_int = (int)roundf(value);
 											setting->makeSureTheValueIsAGoodBoiAndTheUserHasntScrewedWithIt();
+
 										}
 									}
 									currentYOffset += textHeight + (textPadding * 2);
@@ -619,12 +623,25 @@ void ClickGui::render() {
 
 	// Fill Background
 	{
-		DrawUtils::fillRectangle(vec4_t(
-									 0,
-									 0,
-									 g_Data.getClientInstance()->getGuiData()->widthGame,
-									 g_Data.getClientInstance()->getGuiData()->heightGame),
-								 MC_Color(33, 34, 48), 0.2f);
+		DrawUtils::fillRectangle(vec4_t(0, 0,
+			g_Data.getClientInstance()->getGuiData()->widthGame,
+			g_Data.getClientInstance()->getGuiData()->heightGame),
+			MC_Color(33, 34, 48), backgroundOpacity);
+		DrawUtils::fillRectangle(vec4_t(0, 0,
+			g_Data.getClientInstance()->getGuiData()->widthGame, 30),
+								 moduleColor, 1.0);
+		DrawUtils::fillRectangle(vec4_t(0, 
+			g_Data.getClientInstance()->getGuiData()->heightGame - 30,
+			g_Data.getClientInstance()->getGuiData()->widthGame, 
+			g_Data.getClientInstance()->getGuiData()->heightGame),
+								 moduleColor, 1.0);
+
+		DrawUtils::setColor(0.227, 0.227, 0.855, 1);
+		DrawUtils::drawLine(vec2_t(0, g_Data.getClientInstance()->getGuiData()->heightGame - 30),
+			vec2_t(g_Data.getClientInstance()->getGuiData()->widthGame, 
+				g_Data.getClientInstance()->getGuiData()->heightGame - 30), 1);
+		DrawUtils::drawLine(vec2_t(0, 30),
+			vec2_t(g_Data.getClientInstance()->getGuiData()->widthGame, 30), 1);
 	}
 
 	// Render all categorys
@@ -645,7 +662,12 @@ void ClickGui::render() {
 	DrawUtils::flush();
 }
 
-void ClickGui::init() { initialised = true; }
+void ClickGui::init()
+{ 
+	initialised = true; 
+	moduleMgr->getModule<ClickGuiMod>()->setEnabled(true);
+	ClickGui::backgroundOpacity = 0.2;
+}
 
 void ClickGui::onMouseClickUpdate(int key, bool isDown) {
 	switch (key) {

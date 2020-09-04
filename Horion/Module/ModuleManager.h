@@ -94,8 +94,13 @@
 #include "Modules/TestModule.h"
 #endif
 
+#include "Modules/SmoothFont.h"
+#include "Modules/NoHitbox.h"
 
-class ModuleManager {
+
+struct ModuleManager {
+	SmoothFont* smoothFontMod;
+
 private:
 	GameData* gameData;
 	std::vector<std::shared_ptr<IModule>> moduleList;

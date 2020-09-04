@@ -7,11 +7,6 @@
 #include "../Utils/Target.h"
 #include "../Utils/Utils.h"
 
-enum class Fonts { DEFAULT,
-				   UNICOD,
-				   SMOOTH,
-				   RUNE };
-
 using mce__VertexFormat__disableHalfFloats_t = void(__fastcall*)(__int64, int, int);
 using Tessellator__initializeFormat_t = void(__fastcall*)(__int64, __int64);
 
@@ -84,8 +79,8 @@ public:
 	static void flush();
 	static void setColor(float r, float g, float b, float a);  // rgba, values from 0 to 1
 	static inline void tess__begin(__int64 tesselator, int vertexFormat = 3);
-	static C_Font* getFont(Fonts font);
-	static float getTextWidth(std::string* textStr, float textSize = 1, Fonts font = Fonts::SMOOTH);
+	static C_Font* getFont();
+	static float getTextWidth(std::string* textStr, float textSize = 1);
 
 	static void drawLine(vec2_t start, vec2_t end, float lineWidth);  // rgba
 	static void drawLinestrip3d(const std::vector<vec3_t>& points);
@@ -107,7 +102,7 @@ public:
 	}
 	static void drawImage(std::string filePath, vec2_t& ImagePos, vec2_t& ImageDimension, vec2_t& idk);
 
-	static void drawText(vec2_t pos, std::string* text, MC_Color color, float textSize = 1, float alpha = 1, Fonts font = Fonts::SMOOTH);
+	static void drawText(vec2_t pos, std::string* text, MC_Color color, float textSize = 1, float alpha = 1);
 	static void drawBox(vec3_t lower, vec3_t upper, float lineWidth, bool outline = false);
 	static void drawEntityBox(C_Entity* ent, float lineWidth);
 	static void draw2D(C_Entity* ent, float lineWidth);

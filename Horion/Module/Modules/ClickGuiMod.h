@@ -1,8 +1,8 @@
 #pragma once
 #include "Module.h"
 
-class ClickGuiMod : public IModule {
-public:
+struct ClickGuiMod : public IModule
+{
 	ClickGuiMod();
 	~ClickGuiMod();
 

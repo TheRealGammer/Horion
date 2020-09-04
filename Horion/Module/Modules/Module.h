@@ -97,9 +97,10 @@ public:
 	virtual void onLoadConfig(void* conf);
 	virtual void onSaveConfig(void* conf);
 	virtual bool isFlashMode();
-	virtual void setEnabled(bool enabled);
 	virtual void toggle();
+	virtual void setEnabled(bool enabled);
 	virtual bool isEnabled();
+			void reEnable();
 	virtual void onSendPacket(C_Packet*);
 	virtual bool callWhenDisabled();
 	const char* getTooltip();
